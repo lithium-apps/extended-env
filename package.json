@@ -1,7 +1,7 @@
 {
   "name": "@lithium-apps/extended-env",
   "description": "Extend env module for AdonisJS",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "engines": {
     "node": ">=20.6.0"
   },
