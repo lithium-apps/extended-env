@@ -1,15 +1,15 @@
-name: "🚀 Build & Release / Publish"
-run-name: "🚀 [packages] Build & Release / Publish launched by @${{ github.actor }}"
+name: '🚀 Build & Release / Publish'
+run-name: '🚀 Build & Release / Publish by @${{ github.actor }}'
 
 on:
   push:
     tags:
-      - '[0-9]+.[0-9]+.[0-9]+'
-
+      - 'v*.*.*'
+      - '*.*.*'
   workflow_dispatch:
     inputs:
       publish:
-        description: 'Publish the release ?'
+        description: 'Publish to GitHub Packages?'
         required: false
         type: boolean
         default: false
@@ -124,15 +124,18 @@ jobs:
         run: |
           pnpm run build
 
-      - name: Clean Build Dependencies
-        run: |
-          pnpm run clean
+      # No explicit clean step here; cleanup is handled by prebuild script if needed
 
       - name: Create Production Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ needs.infos.outputs.artifact-name }}
-          path: ${{ needs.infos.outputs.package-path }}
+          # Include built files and metadata
+          path: |
+            build
+            LICENSE.md
+            package.json
+            README.md
 
   release:
     needs:
@@ -156,9 +159,8 @@ jobs:
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
         with:
+          token: ${{ github.token }}
           tag_name: ${{ needs.infos.outputs.tag-name }}
           release_name: ${{ needs.infos.outputs.release-name }}
           draft: false
@@ -175,30 +177,34 @@ jobs:
           asset_content_type: application/zip
 
   publish:
-    needs:
-      - infos
-      - build
-
+    name: "📦 Publish to GitHub Packages"
     runs-on: ubuntu-latest
-    name: "📦 Publishing"
-    if: ${{ needs.infos.outputs.publish == 'true' || github.event_name == 'push' }}
+    needs: build
+    if: github.event_name == 'push' || github.event.inputs.publish == 'true'
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10
+
       - name: Setup Node.js environment
         uses: actions/setup-node@v4
         with:
           node-version: 20
           registry-url: 'https://npm.pkg.github.com'
+          always-auth: true
 
-      - name: Download Build Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ needs.infos.outputs.artifact-name }}
-          path: ${{ needs.infos.outputs.artifact-dir }}
+      - name: Install dependencies
+        run: pnpm install
 
-      - name: Upload Library to Package Registry
-        working-directory: ${{ needs.infos.outputs.artifact-dir }}
+      - name: Build library
+        run: pnpm run build
+
+      - name: Publish package
+        run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ github.token }}
-        run: |
-          npm publish
