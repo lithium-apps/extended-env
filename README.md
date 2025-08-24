@@ -11,7 +11,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/lithium_apps/extended-env">
-    <img src=".github/assets/lithium_logo.png" alt="Logo" width="80" height="80">
+    <img src="https://github.com/lithium-apps/edge/blob/main/.github/assets/lithium_logo.png?raw=true" alt="Logo" width="80" height="80">
   </a>
 
   <h3 align="center">@lithium/extended-env</h3>
